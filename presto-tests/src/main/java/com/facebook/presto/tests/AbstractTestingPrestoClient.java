@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import static com.facebook.presto.client.OkHttpUtil.setupTimeouts;
 import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 import static com.facebook.presto.transaction.TransactionBuilder.transaction;
 import static com.google.common.base.Verify.verify;
@@ -50,13 +51,16 @@ public abstract class AbstractTestingPrestoClient<T>
     private final TestingPrestoServer prestoServer;
     private final Session defaultSession;
 
-    private final OkHttpClient httpClient = new OkHttpClient();
+    private final OkHttpClient httpClient;
 
     protected AbstractTestingPrestoClient(TestingPrestoServer prestoServer,
             Session defaultSession)
     {
         this.prestoServer = requireNonNull(prestoServer, "prestoServer is null");
         this.defaultSession = requireNonNull(defaultSession, "defaultSession is null");
+        OkHttpClient.Builder builder = new OkHttpClient.Builder();
+        setupTimeouts(builder, 60, TimeUnit.SECONDS);
+        httpClient = builder.build();
     }
 
     @Override

@@ -17,6 +17,9 @@ import com.facebook.presto.testing.MaterializedResult;
 import com.facebook.presto.tests.AbstractTestIntegrationSmokeTest;
 import org.testng.annotations.Test;
 
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
+
 import static com.facebook.presto.connector.thrift.integration.ThriftQueryRunner.createThriftQueryRunner;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.facebook.presto.tests.QueryAssertions.assertContains;
@@ -40,5 +43,21 @@ public class TestThriftIntegrationSmokeTest
                 .row("tiny")
                 .row("sf1");
         assertContains(actualSchemas, resultBuilder.build());
+    }
+
+    @Test
+    public void testLargeInQuerySchemas()
+            throws Exception
+    {
+        StringBuilder largeQuery = new StringBuilder();
+        largeQuery.append("select * from ORDERS where ORDERKEY IN (");
+        long start = 1000000000000L;
+        long numElements = 1000*1000;
+        largeQuery.append(LongStream.range(start, start + numElements).mapToObj(Long::toString)
+                .collect(Collectors.joining(", ")));
+        largeQuery.append(")");
+
+        String sql = largeQuery.toString();
+        MaterializedResult result = getQueryRunner().execute(sql);
     }
 }

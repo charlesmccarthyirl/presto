@@ -30,11 +30,13 @@ import com.facebook.presto.tests.DistributedQueryRunner;
 import com.facebook.presto.transaction.TransactionManager;
 import com.facebook.swift.codec.ThriftCodecManager;
 import com.facebook.swift.service.ThriftServer;
+import com.facebook.swift.service.ThriftServerConfig;
 import com.facebook.swift.service.ThriftServiceProcessor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.airlift.log.Logger;
 import io.airlift.testing.Closeables;
+import io.airlift.units.DataSize;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -86,7 +88,7 @@ public final class ThriftQueryRunner
         List<ThriftServer> servers = new ArrayList<>(thriftServers);
         for (int i = 0; i < thriftServers; i++) {
             ThriftServiceProcessor processor = new ThriftServiceProcessor(new ThriftCodecManager(), ImmutableList.of(), new ThriftTpchService());
-            servers.add(new ThriftServer(processor).start());
+            servers.add(new ThriftServer(processor, new ThriftServerConfig().setMaxFrameSize(DataSize.succinctDataSize(128, DataSize.Unit.MEGABYTE))).start());
         }
         return servers;
     }
@@ -103,7 +105,7 @@ public final class ThriftQueryRunner
                 .setCatalog("thrift")
                 .setSchema("tiny")
                 .build();
-        DistributedQueryRunner queryRunner = new DistributedQueryRunner(defaultSession, workers);
+        DistributedQueryRunner queryRunner = new DistributedQueryRunner(defaultSession, workers, ImmutableMap.of("query.max-length", "100000000"));
         queryRunner.installPlugin(new ThriftPlugin());
         Map<String, String> connectorProperties = ImmutableMap.of(
                 "static-location.hosts", hosts.stringValue(),
